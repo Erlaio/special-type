@@ -1,0 +1,64 @@
+version: '3.8'
+
+x-env: &app-env
+  # Django
+  SECRET_KEY: "" # TODO: Fix me
+  ALLOWED_HOSTS: "" # TODO: Fix me 
+  DEBUG: "" # TODO: Fix me
+  # API
+  X_API_TOKEN: "" # TODO: Fix me
+  # PostgresSQL
+  DB_ENGINE: "" # TODO: Fix me
+  POSTGRES_HOST: "" # TODO: Fix me
+  POSTGRES_PORT: "" # TODO: Fix me
+  POSTGRES_USER: "" # TODO: Fix me
+  POSTGRES_PASSWORD: "" # TODO: Fix me
+  POSTGRES_DATABASE_NAME: "" # TODO: Fix me
+
+  #yookassa
+  API_YOOKASSA_KEY: "" # TODO: Fix me
+  SHOP_ID: "" # TODO: Fix me
+
+
+services:
+  db:
+    image: postgres:13.0-alpine
+    volumes:
+      - db_value:/var/lib/postgresql/data/
+    environment:
+      <<: *app-env
+
+
+  web:
+    build: .
+    command:
+      bash -c "python manage.py migrate &&
+      python manage.py collectstatic --no-input &&
+      gunicorn core.wsgi -b 0.0.0.0:8000"
+    restart: always
+    volumes:
+      - static_value:/app/backend_static/
+      - media_value:/app/backend_media/
+    environment:
+      <<: *app-env
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:1.21.3-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - static_value:/var/html/backend_static/
+      - media_value:/var/html/backend_media/
+    environment:
+      <<: *app-env
+    depends_on:
+      - web
+
+
+volumes: 
+  static_value: 
+  media_value: 
+  db_value:
